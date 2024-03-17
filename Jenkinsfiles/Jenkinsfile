@@ -1,0 +1,51 @@
+pipeline {
+  agent any
+
+  stages {
+      stage('build') {
+          steps {
+              echo 'build wooriga-backend docker image'
+              sh '''
+              latest_version=$(node Jenkinsfiles/getEBVersionLabel.ts)
+              new_version=$((latest_version + 1))
+              docker build -t wooriga-backend:${new_version} .
+              docker tag wooriga-backend:${new_version} 826808575730.dkr.ecr.ap-northeast-2.amazonaws.com/wooriga-backend:${new_version}
+              docker tag wooriga-backend:${new_version} 826808575730.dkr.ecr.ap-northeast-2.amazonaws.com/wooriga-backend:latest
+              '''
+          }
+      }
+      stage('push') {
+          steps {
+          echo 'push wooriga-backend docker image to ECR'
+          sh '''
+          latest_version=$(node Jenkinsfiles/getEBVersionLabel.ts)
+          new_version=$((latest_version + 1))
+          aws ecr get-login-password --region ap-northeast-2 | docker login --username AWS --password-stdin 826808575730.dkr.ecr.ap-northeast-2.amazonaws.com
+          docker push 826808575730.dkr.ecr.ap-northeast-2.amazonaws.com/wooriga-backend:${new_version}
+          docker push 826808575730.dkr.ecr.ap-northeast-2.amazonaws.com/wooriga-backend:latest
+          '''
+          }
+      }
+      stage('deploy') {
+        steps {
+          echo 'eb deployment'
+          sh '''
+          latest_version=$(node Jenkinsfiles/getEBVersionLabel.ts)
+          new_version=$((latest_version + 1))
+          message=$(git log --format=%B -n 1 HEAD)
+          aws s3 cp Dockerrun.aws.json s3://wooriga-dockerrun/backend/Dockerrun.aws.json
+          aws elasticbeanstalk create-application-version --region ap-northeast-2 --application-name wooriga-backend --version-label $new_version  --description "${message}" --source-bundle S3Bucket=wooriga-dockerrun,S3Key=backend/Dockerrun.aws.json
+          aws elasticbeanstalk update-environment --region ap-northeast-2 --environment-name wooriga-backend-prod --version-label $new_version
+          '''
+            }
+          }
+        }
+  post {
+    success {
+      echo 'deployment success'
+    }
+    failure {
+      echo 'deployment failure'
+    }
+  }
+}

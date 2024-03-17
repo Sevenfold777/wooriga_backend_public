@@ -1,0 +1,10 @@
+Dockerfile
+.dockerignore
+/node_modules
+dist
+
+# env variables
+*.env
+
+# firebase
+# wooriga-firebase-adminsdk.json

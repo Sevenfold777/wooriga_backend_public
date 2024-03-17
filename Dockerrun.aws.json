@@ -1,0 +1,20 @@
+{
+  "AWSEBDockerrunVersion": "1",
+  "Image": {
+    "Name": "826808575730.dkr.ecr.ap-northeast-2.amazonaws.com/wooriga-backend:latest",
+    "Update": "true"
+  },
+  "Ports": [
+    {
+      "ContainerPort": "3000",
+      "HostPort": "3000"
+    }
+  ],
+  "Volumes": [
+    {
+      "ContainerDirectory": "/var/app",
+      "HostDirectory": "/var/app"
+    }
+  ],
+  "Logging": "/var/eb_log"
+}
